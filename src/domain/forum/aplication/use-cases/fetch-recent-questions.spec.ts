@@ -1,13 +1,19 @@
 import { InMemoryQuestionsRepositories } from 'test/repositories/in-memory-questions-repository'
 import { FetchRecentQuestionsUseCase } from './fetch-recent-questions'
 import { makeQuestion } from 'test/factories/make-question'
+import { InMemoryQuestionAttachmentsRepository } from 'test/repositories/in-memory-question-attachments-repository'
 
 let inMemoryQuestionsRepository: InMemoryQuestionsRepositories
+let inMemoryQuestionAttachmentsRepository: InMemoryQuestionAttachmentsRepository
 let sut: FetchRecentQuestionsUseCase
 
 describe('fetch Question ', () => {
   beforeEach(() => {
-    inMemoryQuestionsRepository = new InMemoryQuestionsRepositories()
+    inMemoryQuestionAttachmentsRepository =
+      new InMemoryQuestionAttachmentsRepository()
+    inMemoryQuestionsRepository = new InMemoryQuestionsRepositories(
+      inMemoryQuestionAttachmentsRepository,
+    )
     sut = new FetchRecentQuestionsUseCase(inMemoryQuestionsRepository)
   })
 
@@ -22,11 +28,11 @@ describe('fetch Question ', () => {
       makeQuestion({ createdAt: new Date(2022, 0, 23) }),
     )
 
-    const { question } = await sut.execute({
+    const result = await sut.execute({
       page: 1,
     })
 
-    expect(question).toEqual([
+    expect(result.value?.questions).toEqual([
       expect.objectContaining({ createdAt: new Date(2022, 0, 23) }),
       expect.objectContaining({ createdAt: new Date(2022, 0, 20) }),
       expect.objectContaining({ createdAt: new Date(2022, 0, 18) }),
@@ -39,9 +45,9 @@ it('should paginate', async () => {
     await inMemoryQuestionsRepository.create(makeQuestion())
   }
 
-  const { question } = await sut.execute({
+  const result = await sut.execute({
     page: 2,
   })
 
-  expect(question).toHaveLength(2)
+  expect(result.value?.questions).toHaveLength(4)
 })
